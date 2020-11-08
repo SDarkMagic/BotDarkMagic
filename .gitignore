@@ -1,0 +1,13 @@
+.env
+Pipfile
+Pipfile.lock
+commands.txt
+.google-cookie
+logs/
+deathCount.txt
+Vars/**
+gameIdDatabase.json
+messageRoleReactions.json
+whatimiss.txt
+.vscode
+__pycache__
