@@ -3,6 +3,7 @@ import os
 import modules.ExtFuncs as util
 import modules.checks as customChecks
 import json
+import time
 import threading
 import multiprocessing
 import modules.twitchBot as twitchBot
@@ -26,6 +27,7 @@ class twitchBotCog(commands.Cog):
         self.bot = bot
         self.processQueues = {}
         self.shareData = multiprocessing.Queue()
+    
 
     @commands.command(name='runTwitch')
     @customChecks.checkRole('Admins')
@@ -44,18 +46,41 @@ class twitchBotCog(commands.Cog):
             await ctx.send(f'Twitch Bot has been started on the channel "{streamers.get(str(gid))}"')
         else:
             await ctx.send(f'The guild {ctx.guild.name} does not have an associated twitch channel...')
+
+    @commands.command(name='endTwitch', aliases=['killTwitch'])
+    @customChecks.checkRole('Admins')
+    async def endTwitch(self, ctx):
+        gid = ctx.guild.id
+        guildProcess = self.processQueues.get(gid)
+        queue = guildProcess[-1]
+        process = guildProcess[0]
+        queue.put(True)
+        time.sleep(6)
+        print(f'Terminating process: {str(process)}')
+        process.terminate()
+        process.join()
+        print('joined process')
+        process.close()
+        print('closed process')
+        self.processQueues.pop(gid)
+        await ctx.send('Successfully ended the twitch bot!')
+
     
     def cog_unload(self):
         for queue in self.processQueues.values():
             try:
-                queue.put(True)
+                queue[-1].put(True)
             except:
                 continue
         for process in self.processQueues.keys():
             print(f'Terminating process: {str(process)}')
             currentProcess = self.processQueues.get(process)[0]
+            time.sleep(6)
+            currentProcess.terminate()
             currentProcess.join()
+            print('joined process')
             currentProcess.close()
+            print('closed process')
         print('unloaded cog')
 
 def setup(bot):

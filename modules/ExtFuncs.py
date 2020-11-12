@@ -77,7 +77,7 @@ class filePath:
     def __init__(self, guildID):
         self.jsonPath = pathlib.Path(f'Vars/{guildID}/{guildID}.json')
         self.genPath = pathlib.Path(f'Vars/{guildID}')
-        self.twitchData = self.findGuildData('TwitchData')
+        self.twitchData = self.findGuildData('TwitchChannel')
         self.bannedWords = self.findGuildData('BannedWords')
         self.jsonData = self.readGuildJson()
 

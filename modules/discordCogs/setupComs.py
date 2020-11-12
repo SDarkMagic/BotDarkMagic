@@ -39,7 +39,7 @@ class setupCommands(commands.Cog):
         except:
             twitchData = None
         if twitchData == None:
-            twitchData = {'entryLines': [], 'missTxt': '', 'channelRules': {}, 'easterEggs': False}
+            twitchData = {'entryLines': [], 'missTxt': '', 'Rules': {}, 'easterEggs': False}
         else:
             pass
         guildReadVars.update({'TwitchChannel': twitchData})

@@ -38,7 +38,6 @@ class dataChecker:
         if checkData == True or killThread == True:
             if checkData == True:
                 asyncio.run(sendKill())
-                print('1')
             else:
                 pass
             return
@@ -83,7 +82,6 @@ bot = commands.Bot(
 
 # Global Variables
 now = time.strftime("%Y-%m-%d_%H%M%S")
-nameColors = ["Blue", "BlueViolet", "CadetBlue", "Chocolate", "Coral", "DodgerBlue", "Firebrick", "GoldenRod", "Green", "HotPink", "OrangeRed", "Red", "SeaGreen", "SpringGreen", "YellowGreen"]
 ytLink = "https://www.youtube.com/channel/UCg5GCfIEYGScRsbss8lhH7A?"
 cmdLink = "https://docs.google.com/document/d/1Stt8MMKHmD1Nj2BOc_Pg8s6i5u2CMByu8-sib89x06Q/edit?usp=sharing"
 me = "/me "
@@ -129,7 +127,6 @@ async def event_message(ctx):
     else:
         await bot.handle_commands(ctx)
         await event_filter(ctx)
-        await magic(ctx)
 #        await event_log(ctx)
 
 # Chat filter
@@ -140,8 +137,6 @@ async def event_filter(ctx):
         listObjIndex = bannedWordsList.index(listObj)
         listObj = listObj.rstrip("\n")
         bannedWordsList[listObjIndex] = listObj
-
-#    print(bannedWordsList)
     userName = ctx.author.name
     print("Running filter")
     if (ctx.author.name.lower() == os.environ['BOT_NICK'].lower() or ctx.author.is_mod == True):
@@ -164,16 +159,6 @@ async def event_log(ctx):
     path = pathlib.Path(f'{gid}/logs/Twitch')
     ExtFuncs.log(path, str(datetime.datetime.now().strftime("%Y-%m-%d").replace('/', '') + '.csv'), ctx.author.name, 'SDarkMagic-Twitch', str(ctx.content.replace(',', '')))
 """
-# Magic
-async def magic(ctx):
-    """A really stupid function whose sole purpose is to correct anyone who says 'magic' with 'dark magic'"""
-    msgToList = ctx.content.split(" ")
-    for word in msgToList:
-        if (word.lower() == "magic"):
-            await ctx.channel.send("@" + ctx.author.name + " *Dark magic")
-            break
-        else:
-            continue
 
 # Runs whenever there is a subscription
 @bot.event
@@ -184,12 +169,7 @@ async def event_usernotice_subscription(ctx):
 # Bot Commands
 
 
-# Changes the bot's name color to a randomly selected one
-@bot.command(name="color")
-async def color(ctx):
-    formatHex = random.choice(nameColors)
-    print(formatHex)
-    await bot._ws.send_privmsg(channelToJoin[0], f"/color " + formatHex)
+
 
 """
 # Displays channel emotes in chat
@@ -260,8 +240,12 @@ async def youtube(ctx):
 @bot.command(name="rules")
 async def rules(ctx):
     msg = "/me Here are the channel rules! "
-    subRuleDict = ExtFuncs.filePath(gid).twitchData.get('Rules')
-
+    try:
+        subRuleDict = ExtFuncs.filePath(gid).twitchData.get('Rules')
+    except:
+        msg = f'No rules could be found for the channel: {channelToJoin[0]}'
+        await ctx.send(str(msg))
+        return
     if subRuleDict != None or subRuleDict != {}:
         for rule in sorted(subRuleDict.keys()):
             msg = msg + rule + ". " + str(subRuleDict.get(rule)) + " "
@@ -277,18 +261,20 @@ async def addRule(ctx, *rule):
     rule = str(" ".join(rule[:]))
     filePath = ExtFuncs.filePath(gid)
     with open(filePath.jsonPath, "rt") as ruleDict:
-        ruleDict = ruleDict
-        subRuleDict = ruleDict.get('rules')
+        ruleDict = json.loads(ruleDict.read())
+        minorRuleDict = ruleDict.get('TwitchChannel')
+        subRuleDict = minorRuleDict.get('Rules')
     writeRuleFile = open(filePath.jsonPath, 'wt')
 
     if (ctx.author.name.lower() == os.environ["CHANNEL"] or ctx.author.is_mod == True):
-        sortKeys = sorted(subRuleDict.keys())
         try:
+            sortKeys = sorted(subRuleDict.keys())
             newKey = int(sortKeys[-1]) + 1
         except:
             newKey = 1
         subRuleDict.update({str(newKey): rule})
-        ruleDict.update({'rules': subRuleDict})
+        minorRuleDict.update({'Rules': subRuleDict})
+        ruleDict.update({'TwitchChannel': minorRuleDict})
         writeRuleFile.write(json.dumps(ruleDict, indent=2))
         await ctx.send("The rule, " + '"' + str(rule) + '"' + " with the ID of " + str(newKey) + " has been successfully added to the rules list.")
     else:
@@ -301,15 +287,18 @@ async def addRule(ctx, *rule):
 @bot.command(name="removeRule")
 async def removeRule(ctx, ruleNum):
     filePath = ExtFuncs.filePath(gid)
+    ruleNum = str(ruleNum)
     with open(filePath.jsonPath, 'rt') as ruleDict:
-        ruleDict = ruleDict
-        subRuleDict = ruleDict.get('rules')
+        ruleDict = json.loads(ruleDict.read())
+        minorRuleDict = ruleDict.get('TwitchChannel')
+        subRuleDict = minorRuleDict.get('Rules')
 
     if (ctx.author.name.lower() == os.environ["CHANNEL"] or ctx.author.is_mod == True):
         if (ruleNum in subRuleDict.keys()):
             writeRuleFile = open(filePath.jsonPath, "wt")
             subRuleDict.pop(ruleNum)
-            ruleDict.update({'rules': subRuleDict})
+            minorRuleDict.update({'Rules': subRuleDict})
+            ruleDict.update({'TwitchChannel': minorRuleDict})
             writeRuleFile.write(json.dumps(ruleDict, indent=2))
             await ctx.send("The rule with ID " + ruleNum + " has been successfully removed.")
             writeRuleFile.close()
@@ -323,7 +312,10 @@ async def removeRule(ctx, ruleNum):
 
 @bot.command(name="rule")
 async def rule(ctx, num):
-    subRuleDict = ExtFuncs.filePath(gid).twitchData.get('Rules')
+    try:
+        subRuleDict = ExtFuncs.filePath(gid).twitchData.get('Rules')
+    except:
+        subRuleDict = None
 
     if str(num).lower() in subRuleDict.keys():
         await ctx.send("/me " + subRuleDict.get(num))
@@ -335,8 +327,7 @@ async def rule(ctx, num):
 
 @bot.command(name="whatimiss")
 async def whatimiss(ctx):
-    msgFile = open("whatimiss.txt", "rt")
-    msg = msgFile.read()
+    msg = ExtFuncs.filePath(gid).twitchData.get('missTxt')
     await ctx.send("@" + ctx.author.name + " While you were gone, " + msg)
 
 # Command for updating the "whatimiss" response message
@@ -345,10 +336,33 @@ async def whatimiss(ctx):
 @bot.command(name="updateMiss")
 async def updateMiss(ctx, *txt):
     if(ctx.author.is_mod == True):
-        msgFile = open("whatimiss.txt", "wt")
-        print("The sender has the permissions to use this command")
-        msgFile.write(" ".join(txt[:]))
+        fileData = ExtFuncs.filePath(gid)
+        msgData = fileData.jsonData
+        twitchStuffs = msgData.get('TwitchChannel')
+        twitchStuffs.update({'missTxt': (" ".join(txt[:]))})
+        msgData.update({'TwitchChannel': twitchStuffs})
+        with open(fileData.jsonPath, 'wt') as writeOut:
+            writeOut.write(json.dumps(msgData, indent=2))
         await ctx.send("What did I miss file has been updated successfully.")
+    else:
+        await ctx.send("You do not have the required permissions to use this command!")
+
+# Custom entry lines
+@bot.command(name="addEntry")
+async def addEntry(ctx, *txt):
+    if(ctx.author.is_mod == True):
+        fileData = ExtFuncs.filePath(gid)
+        msgData = fileData.jsonData
+        twitchStuffs = msgData.get('TwitchChannel')
+        entryLines = twitchStuffs.get('entryLines')
+        newEntry = str(" ".join(txt[:]))
+        print(entryLines)
+        entryLines.append(newEntry)
+        twitchStuffs.update({'entryLines': entryLines})
+        msgData.update({'TwitchChannel': twitchStuffs})
+        with open(fileData.jsonPath, 'wt') as writeOut:
+            writeOut.write(json.dumps(msgData, indent=2))
+        await ctx.send(f"The entry {newEntry} was successfully added.")
     else:
         await ctx.send("You do not have the required permissions to use this command!")
 
@@ -365,12 +379,9 @@ async def deathCount(ctx):
 @bot.command(name="addDeath")
 async def addDeath(ctx):
     # Adds a single death to the counter every time the command is run
-    deathCountFile = open("deathCount.txt", "wt")
     global deathCounter
     deathCounter += 1
-    deathCountFile.write("Death counter: " + str(deathCounter))
     await ctx.send("Death counter updated successfully.")
-    deathCountFile.close()
 
 # Resets the death counter to 0
 
@@ -378,12 +389,9 @@ async def addDeath(ctx):
 @bot.command(name="resetDeath")
 async def resetDeath(ctx):
     if (ctx.author.is_mod == True):
-        deathCountFile = open("deathCount.txt", "wt")
         global deathCounter
         deathCounter = 0
-        deathCountFile.write("Death counter: " + str(deathCounter))
         await ctx.send("Death counter successfully reset.")
-        deathCountFile.close()
     else:
         await ctx.send("You don't have permission to use this command")
 
@@ -394,19 +402,14 @@ async def resetDeath(ctx):
 async def setDeath(ctx, num):
     if (ctx.author.is_mod == True):
         global deathCounter
-        deathCountFile = open("deathCount.txt", "wt")
         deathCounter = int(num)
-        deathCountFile.write("Death counter: " + str(deathCounter))
         await ctx.send("Death counter has been set to " + str(deathCounter))
-        deathCountFile.close()
     else:
         await ctx.send("You don't have the permissions to use this command")
-
+"""
 # Add a word to the banned word list
-
-
 @bot.command(name="blacklist")
-async def addBlacklist(ctx, word):
+async def blacklist(ctx, word):
     bannedWords = open("bannedWords.txt", "at")
     if (ctx.author.is_mod == True):
         bannedWords.write("\n" + word)
@@ -414,14 +417,7 @@ async def addBlacklist(ctx, word):
     else:
         await ctx.send("You don't have permission to use this command")
     bannedWords.clos()
-
-# Stupid chat message
-
-
-@bot.command(name="good")
-async def good(ctx):
-    await ctx.send("I swear I'm actually really good at this game!")
-
+"""
 
 @bot.command(name="so")
 async def so(ctx, user):
@@ -429,26 +425,13 @@ async def so(ctx, user):
     await ctx.send(f'You should go checkout {user} over at https://wwww.twitch.tv/{user}')
 
 
-@bot.command(name="exit")
-async def exit(ctx):
-    global killThread
-    if (ctx.author.name.lower() == os.environ["CHANNEL"].lower()):
-        killThread = True
-        await ctx.send('shutting down!')
-        await bot.part_channels(channelToJoin)
-        safeShutDown()
-    else:
-        await ctx.send("You don't appear to own this channel...")
-
 def safeShutDown():
     print('called safeShutDown-twitch')
     for threadObj in runningThreads:
-        print(threadObj)
         threadObj.join()
         print(f'Safely ended thread: {threadObj.name}')
     checker.queue.close()
     print('closed queue')
-    print('tearing down ws')
     bot._ws.teardown()
     print('properly toredown ws')
     return
@@ -466,8 +449,3 @@ async def joinChannel(channelName):
         await bot.join_channels(channelName)
     except:
         print('failed to join channel...')
-
-
-
-#if __name__ == '__main__':
-#    run()

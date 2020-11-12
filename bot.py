@@ -398,12 +398,6 @@ async def on_member_join(ctx):
 async def test(ctx, user='sdarkmagic'):
     await bot.change_presence(activity=discord.Game(name='YEP'))
     streamEmbed = TwitchAPI.generateEmbed(user)
-    testEmbed = discord.Embed(
-        title='SDarkMagic Just Went live!',
-        description="waow",
-        url=os.getenv('TWITCH'),
-        color=discord.Color(0xB345E2)
-    )
     Channel = discord.Client.get_channel(bot, id=int(os.getenv('STREAM_ANNOUNCEMENT_CHANNEL')))
     print(Channel)
     await ctx.trigger_typing()
@@ -415,10 +409,8 @@ async def test(ctx, user='sdarkmagic'):
 @customChecks.checkUserDark()
 async def shutDown(ctx):
     await ctx.send("Bot shutting down!")
-    safeShutDown()
-    await bot.logout()
-    await bot.close()
-    sys.exit()
+    await safeShutDown()
+    
 
 # Checks messages for non-english content
 @bot.command(name='translate')
@@ -512,43 +504,29 @@ async def systemReboot(ctx):
     rebootSequence()
     await bot.close()
 
-"""
-# Starts the twitch bot end of things
-@bot.command(name='runTwitch')
-@customChecks.checkUserDark()
-async def runTwitch(ctx):
-    await ctx.send('Running Twitch Bot!')
-    twitchThread = threading.Thread(target=twitchBot.main)
-    twitchThread.start()
-"""
-"""
-@bot.command(name="restart")
-@commands.has_role("Owner(s)")
-async def restart(ctx):
-    await ctx.send("bot restarting")
-    await bot.close()
-    time.sleep(2)
-    os.system("./home/pi/Desktop/runBots.sh")
-"""
+
 # Series of commands for restarting the system(only works if system is linux based)
 def rebootSequence():
     os.system("sudo shutdown -r now")
 
-def safeShutDown():
+async def safeShutDown():
     global killThread
     killThread = True
     for threadObj in threads:
         threadObj.join()
         print(f'Successfully killed the thread: {threadObj.name}')
     for cogFile in pathlib.Path('modules/discordCogs').iterdir():
-        if cogFile.name.split[-1] == 'py':
+        fileName = cogFile.name
+        if fileName.split('.')[-1] == 'py':
             try:
-                print(f'unloading {cogFile.name}')
                 bot.unload_extension(f'modules.discordCogs.{cogFile.name}')
+                print(f'unloading {cogFile.name}')
             except:
                 continue
         else:
             continue
+    await bot.logout()
+    await bot.close()
 
 def main():
     asyncio.set_event_loop(botLoop)
