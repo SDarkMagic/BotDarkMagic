@@ -14,30 +14,46 @@ import asyncio
 
 initChannels = ['BotDarkMagic']
 runningThreads = []
+killThread = False
 
 class dataChecker:
     def __init__(self, data):
         self.queue = data
+        self.threadName = f'Twitch_{gid}_A'
 
-    async def checkLoop(self):
+    def check(self):
+        global runningThreads
+        self.thread = threading.Thread(name=self.threadName, target=self.checkLoop)
+        runningThreads.append(self.thread)
+        self.thread.start()
+
+    def checkLoop(self):
+        print('checkLoop running')
         checkData = self.getPutData()
-        try:
-            checkGuild = checkData.get(gid)
-            checkAll = checkData.get('all')
-        except:
-            checkGuild = None
-            checkAll = None
-        print('a')
-        if checkGuild == True or checkAll == True:
-            bot.part_channels(channelToJoin)
+        print(checkData)
+        async def sendKill():
+            await bot._ws.send_privmsg(channelToJoin[0], '!exit')
+            return
+
+        if checkData == True or killThread == True:
+            if checkData == True:
+                asyncio.run(sendKill())
+                print('1')
+            else:
+                pass
+            return
         else:
-            await asyncio.sleep(30)
-            await self.checkLoop()
+            time.sleep(30)
+            self.checkLoop()
 
     def getPutData(self):
-        dataDown = self.queue.get()
+        try:
+            dataDown = self.queue.get(True, 5)
+        except:
+            dataDown = None
+            return dataDown
         self.queue.put(dataDown)
-        print(dataDown)
+        print(f'dataDown: {dataDown}')
         return dataDown
 
 
@@ -54,11 +70,7 @@ def run(botClass, guildId, dataQueue):
     else:
         print('No way to share data between discord and twitch; Killing twitch bot process')
         return
-    checker = dataChecker(data)
-    asyncio.gather(
-        checker.checkLoop()
-#        bot.run()
-    )
+    bot.run()
 
 
 bot = commands.Bot(
@@ -86,6 +98,7 @@ gid = None
 
 @bot.event
 async def event_ready():
+    global checker
     'Called once when the bot goes online.'
     print(f"{os.environ['BOT_NICK']} is now online!")
     await joinChannel(channelToJoin)
@@ -97,6 +110,8 @@ async def event_ready():
         randomEntrance = f'No custom entrance lines for the bot were found. To add some, please use the command "!addEntry <text for bot to say when joining the chat>"'
     bot.load_module('modules.twitchCogs.easterEggs')
     print(randomEntrance)
+    checker = dataChecker(data)
+    checker.check()
     ws = bot._ws  # this is only needed to send messages within event_ready
     await ws.send_privmsg(channelToJoin[0], f"/me {randomEntrance}")
 
@@ -106,7 +121,11 @@ async def event_message(ctx):
     # make sure the bot ignores it and the streamer
     if ctx.author.name.lower() == os.environ['BOT_NICK'].lower():
 #        await event_log(ctx)
-        return
+        if ctx.content == '!exit':
+            await bot.part_channels(channelToJoin)
+            safeShutDown()
+        else:
+            return
     else:
         await bot.handle_commands(ctx)
         await event_filter(ctx)
@@ -412,14 +431,28 @@ async def so(ctx, user):
 
 @bot.command(name="exit")
 async def exit(ctx):
-    print(ctx.author.name.lower)
+    global killThread
     if (ctx.author.name.lower() == os.environ["CHANNEL"].lower()):
+        killThread = True
         await ctx.send('shutting down!')
         await bot.part_channels(channelToJoin)
-#        await bot.kill()
-        sys.exit()
+        safeShutDown()
     else:
         await ctx.send("You don't appear to own this channel...")
+
+def safeShutDown():
+    print('called safeShutDown-twitch')
+    for threadObj in runningThreads:
+        print(threadObj)
+        threadObj.join()
+        print(f'Safely ended thread: {threadObj.name}')
+    checker.queue.close()
+    print('closed queue')
+    print('tearing down ws')
+    bot._ws.teardown()
+    print('properly toredown ws')
+    return
+
 """
 @bot.command(name='clip')
 async def clip(ctx):

@@ -47,7 +47,6 @@ def loadCogs():
     for file in os.listdir(cogDir):
         if (str(file).split('.')[-1]) == (str('py')):
             currentCog = f'modules.discordCogs.{str(file)[:-3]}'
-            print (str(file))
             try:
                 bot.load_extension(currentCog)
                 print(f'Successfully loaded cog "{currentCog}"')
@@ -540,11 +539,12 @@ def safeShutDown():
     killThread = True
     for threadObj in threads:
         threadObj.join()
-        print(f'Successfully killed the thread: {threadObj}')
-    for cogFile in pathlib.Path('modules.discordCogs').iterdir():
+        print(f'Successfully killed the thread: {threadObj.name}')
+    for cogFile in pathlib.Path('modules/discordCogs').iterdir():
         if cogFile.name.split[-1] == 'py':
             try:
-                bot.unload_extension(f'modules.discordCogs.{cogFile}')
+                print(f'unloading {cogFile.name}')
+                bot.unload_extension(f'modules.discordCogs.{cogFile.name}')
             except:
                 continue
         else:
