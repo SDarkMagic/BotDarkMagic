@@ -69,15 +69,15 @@ def run(botClass, guildId, dataQueue):
     else:
         print('No way to share data between discord and twitch; Killing twitch bot process')
         return
+    print(asyncio.get_event_loop())
     bot.run()
-
 
 bot = commands.Bot(
     irc_token=os.environ['TMI_TOKEN'],
     client_id=os.environ['CLIENT_ID'],
     nick=os.environ['BOT_NICK'],
     prefix=os.environ['BOT_PREFIX'],
-    initial_channels=initChannels
+    initial_channels=initChannels,
     )
 
 # Global Variables

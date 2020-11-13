@@ -4,6 +4,7 @@ import time
 import json
 import os
 import discord
+import pathlib
 import twitchio
 
 oauthKey = None
@@ -11,7 +12,6 @@ oauthKey = None
 #adminVars = json.load(adminVarFile)
 #links = adminVars.get('Links')
 #dcBackend = adminVars.get('DiscordBackend')
-gameDatabase = json.load(open('gameIdDatabase.json', 'rt'))
 oauthDict = {}
 
 # Requests an oauth token from the Twitch API
@@ -81,24 +81,45 @@ def generateEmbed(user):
             jsonDict.update(obj)
         else:
             continue
-    gameInfo = gameDatabase.get(jsonDict.get('game_id'))
+    with open(pathlib.Path('gameIdDatabase.json'), 'rt') as gameDatabaseFile:
+        gameDatabase = json.loads(gameDatabaseFile.read())
+        gameInfo = gameDatabase.get(jsonDict.get('game_id'))
     if (gameInfo is not None):
         gameInfo = gameInfo
     else:
-        gameInfo = 'Unknown Game'
+        try:
+            gameInfo = getGames(jsonDict.get('game_id'))
+        except:
+            gameInfo = 'Unknown Game'
     streamEmbed = discord.Embed(
         title= adminName + ' Just Went Live!',
         description=jsonDict.get('title'),
         color=discord.Color(0xB345E2),
         url=str(f'https://www.twitch.tv/{user}')
     )
-    streamEmbed.set_image(url='https://static-cdn.jtvnw.net/previews-ttv/live_user_' + user + '.jpg')
-    streamEmbed.set_thumbnail(url=os.getenv('TWITCHPFP'))
-    streamEmbed.add_field(name='Game', value=gameInfo, inline=True)
+    streamEmbed.set_image(url='https://static-cdn.jtvnw.net/previews-ttv/live_user_' + user.lower() + '.jpg')
+    streamEmbed.set_thumbnail(url=gameInfo[-1])
+    streamEmbed.add_field(name='Game', value=gameInfo[0], inline=True)
     return streamEmbed
 
-def getGames():
-    return
+def getGames(game_id):
+    autho = "Bearer " + str(oauthKey)
+    API_HEADERS = {
+        'Client-ID' : os.getenv('TWITCH_CLIENT_ID'),
+        'Authorization' : autho
+        }
+    gameRequest = requests.get(f'https://api.twitch.tv/helix/games?id={game_id}', headers=API_HEADERS)
+    gameData = gameRequest.json().get('data')[0]
+    gameName = [gameData.get('name'), (str(gameData.get('box_art_url')).rstrip("-{width}x{height}.jpg") + '.jpg')]
+    with open(pathlib.Path('gameIdDatabase.json'), 'rt') as readGameDB:
+        dataBase = json.loads(readGameDB.read())
+    if game_id in dataBase.keys():
+        return gameName
+    else:
+        dataBase.update({game_id: gameName})
+        with open(pathlib.Path('gameIdDatabase.json'), 'wt') as writeGameDB:
+            writeGameDB.write(json.dumps(dataBase, indent=2))
+    return gameName
 
 def authTimeLimit():
     timeLeft = oauthDict.get('expires_in')

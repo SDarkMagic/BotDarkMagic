@@ -396,7 +396,7 @@ async def on_member_join(ctx):
 # A test command subject to change
 @bot.command(name="test")
 async def test(ctx, user='sdarkmagic'):
-    await bot.change_presence(activity=discord.Game(name='YEP'))
+#    await bot.change_presence(activity=discord.Game(name='YEP'))
     streamEmbed = TwitchAPI.generateEmbed(user)
     Channel = discord.Client.get_channel(bot, id=int(os.getenv('STREAM_ANNOUNCEMENT_CHANNEL')))
     print(Channel)
