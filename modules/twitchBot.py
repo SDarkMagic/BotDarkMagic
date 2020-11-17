@@ -11,6 +11,8 @@ import pathlib
 import sys
 import threading
 import asyncio
+import nest_asyncio
+nest_asyncio.apply()
 
 initChannels = ['BotDarkMagic']
 runningThreads = []
@@ -69,7 +71,6 @@ def run(botClass, guildId, dataQueue):
     else:
         print('No way to share data between discord and twitch; Killing twitch bot process')
         return
-    print(asyncio.get_event_loop())
     bot.run()
 
 bot = commands.Bot(
@@ -82,14 +83,8 @@ bot = commands.Bot(
 
 # Global Variables
 now = time.strftime("%Y-%m-%d_%H%M%S")
-ytLink = "https://www.youtube.com/channel/UCg5GCfIEYGScRsbss8lhH7A?"
-cmdLink = "https://docs.google.com/document/d/1Stt8MMKHmD1Nj2BOc_Pg8s6i5u2CMByu8-sib89x06Q/edit?usp=sharing"
 me = "/me "
 deathCounter = 0
-deathCountFile = open("deathCount.txt", "wt")
-# initiate the logging and death count files
-deathCountFile.write("Death counter: " + str(deathCounter))
-deathCountFile.close()
 gid = None
 
 # Bot Events
@@ -106,11 +101,14 @@ async def event_ready():
         randomEntrance = random.choice(varData.get('entryLines'))
     except:
         randomEntrance = f'No custom entrance lines for the bot were found. To add some, please use the command "!addEntry <text for bot to say when joining the chat>"'
-    bot.load_module('modules.twitchCogs.easterEggs')
+    if ExtFuncs.filePath(gid).twitchData.get('EasterEggs'):
+        bot.load_module('modules.twitchCogs.easterEggs')
+    else:
+        pass
     print(randomEntrance)
     checker = dataChecker(data)
     checker.check()
-    ws = bot._ws  # this is only needed to send messages within event_ready
+    ws = bot._ws
     await ws.send_privmsg(channelToJoin[0], f"/me {randomEntrance}")
 
 @bot.event
@@ -125,9 +123,24 @@ async def event_message(ctx):
         else:
             return
     else:
-        await bot.handle_commands(ctx)
+        try:
+            await handle_customComs(ctx)
+        except:
+            await bot.handle_commands(ctx)
         await event_filter(ctx)
 #        await event_log(ctx)
+
+async def handle_customComs(ctx):
+    guildData = customComs(gid)
+    messageList = ctx.content.split(' ')
+    if messageList[0].startswith('!'):
+        command = str(messageList[0]).lstrip('!')
+        if guildData.searchComs(command):
+            await ctx.channel.send(guildData.customComs.get(command))
+        else:
+            raise commands.errors.CommandNotFound(f'<{command}> was not found.')
+    else:
+        raise commands.errors.CommandNotFound(f'<{command}> was not found.')
 
 # Chat filter
 async def event_filter(ctx):
@@ -167,9 +180,6 @@ async def event_usernotice_subscription(ctx):
 
 
 # Bot Commands
-
-
-
 
 """
 # Displays channel emotes in chat
@@ -221,22 +231,9 @@ async def removeEmote(ctx, emote):
             await ctx.send("That emote was not registered to begin with.")
     else:
         await ctx.send("You don't have the permissions to use this command!")
-
-@bot.command(name="discord")
-async def discord(ctx):
-    await ctx.send(me + "@" + ctx.author.name + " Come join the discord and hangout even after the stream by going to " + ExtFuncs.filePath(gid).findGuildData('DiscordBackend').get())
-
-# Sends a link to the youtube channel as a chat message
-
-
-@bot.command(name="youtube")
-async def youtube(ctx):
-    await ctx.send(me + "@" + ctx.author.name + " Subscribe to my YouTube channel at " + ytLink)
 """
 
 # Sends the channel rules as a chat message
-
-
 @bot.command(name="rules")
 async def rules(ctx):
     msg = "/me Here are the channel rules! "
@@ -264,9 +261,9 @@ async def addRule(ctx, *rule):
         ruleDict = json.loads(ruleDict.read())
         minorRuleDict = ruleDict.get('TwitchChannel')
         subRuleDict = minorRuleDict.get('Rules')
-    writeRuleFile = open(filePath.jsonPath, 'wt')
 
     if (ctx.author.name.lower() == os.environ["CHANNEL"] or ctx.author.is_mod == True):
+        writeRuleFile = open(filePath.jsonPath, 'wt')
         try:
             sortKeys = sorted(subRuleDict.keys())
             newKey = int(sortKeys[-1]) + 1
@@ -276,10 +273,11 @@ async def addRule(ctx, *rule):
         minorRuleDict.update({'Rules': subRuleDict})
         ruleDict.update({'TwitchChannel': minorRuleDict})
         writeRuleFile.write(json.dumps(ruleDict, indent=2))
+        writeRuleFile.close()
         await ctx.send("The rule, " + '"' + str(rule) + '"' + " with the ID of " + str(newKey) + " has been successfully added to the rules list.")
     else:
         await ctx.send("@" + ctx.author.name + " You don't have the permissions to use this command!")
-    writeRuleFile.close()
+
 
 # Removes a rule from the rules file
 
@@ -424,6 +422,101 @@ async def so(ctx, user):
     user = str(user).lstrip('@')
     await ctx.send(f'You should go checkout {user} over at https://wwww.twitch.tv/{user}')
 
+class customComs:
+    def __init__(self, gid):
+        self.gid = gid
+        self.varFile = ExtFuncs.filePath(gid)
+        self.twitchData = self.varFile.twitchData
+        self.guildData = self.varFile.jsonData
+        self.customComs = self.varFile.twitchData.get('CustomComs')
+
+    def searchComs(self, comToSearch):
+        if str(comToSearch) in self.customComs.keys():
+            return True
+        else:
+            return False
+
+    def addCom(self, comName, comResult):
+        comResult = ' '.join(comResult[:])
+        self.customComs.update({comName: comResult})
+        self.twitchData.update({'CustomComs': self.customComs})
+        self.guildData.update({'TwitchChannel': self.twitchData})
+        with open(self.varFile.jsonPath, 'wt') as writeData:
+            writeData.write(json.dumps(self.guildData, indent=2))
+
+    def removeCom(self, comName):
+        self.customComs.pop(comName)
+        self.twitchData.update({'CustomComs': self.customComs})
+        self.guildData.update({'TwitchChannel': self.twitchData})
+        with open(self.varFile.jsonPath, 'wt') as writeData:
+            writeData.write(json.dumps(self.guildData, indent=2))
+
+
+@bot.command(name="addCom")
+async def addCom(ctx, commandName, *commandReturn):
+    guildData = customComs(gid)
+    commandName = str(commandName).lstrip('!')
+    if guildData.searchComs(commandName):
+        await ctx.send(f'The command {commandName} already exists. If you wish to edit it, please use the command "!editCom <Command Name> <New Command Result>"')
+        return
+    guildData.addCom(commandName, commandReturn)
+    await ctx.send(f'The command !{commandName} was successfully added.')
+
+@bot.command(name="editCom")
+async def editCom(ctx, commandName, *commandReturn):
+    guildData = customComs(gid)
+    commandName = str(commandName).lstrip('!')
+    if not guildData.searchComs(commandName):
+        await ctx.send(f"The command {commandName} doesn't appear to exist. If you wish to add it,"' please use the command "!addCom <Command Name> <New Command Result>"')
+        return 
+    guildData.addCom(commandName, commandReturn)
+    await ctx.send(f'The command !{commandName} was successfully updated.')
+
+@bot.command(name='removeCom')
+async def removeCom(ctx, commandName):
+    guildData = customComs(gid)
+    commandName = str(commandName).lstrip('!')
+    if not guildData.searchComs(commandName):
+        await ctx.send(f'The command {commandName} could not be found.')
+        return
+    guildData.removeCom(commandName)
+    await ctx.send(f'The command !{commandName} was removed successfully.')
+
+@bot.command(name='enableEggs', aliases=['enableEasterEggs'])
+async def enableEggs(ctx):
+    channelData = ExtFuncs.filePath(gid)
+    jsonData = channelData.jsonData
+    twitchData = channelData.twitchData
+    twitchData.update({'EasterEggs': True})
+    jsonData.update({'TwitchChannel': twitchData})
+    with open(channelData.jsonPath, 'wt') as writeData:
+        writeData.write(json.dumps(jsonData))
+    await ctx.send('Easter eggs successfully enabled; Enjoy! :)')
+    try:
+        bot.load_module('modules.twitchCogs.easterEggs')
+        await ctx.send('Easter eggs now running! :D')
+    except:
+        await ctx.send('Failed to load the easter eggs. Consider restarting the twitch bot from discord by running ".killTwitch" followed by ".runTwitch"')
+    return
+
+@bot.command(name='disableEggs', aliases=['disableEasterEggs'])
+async def disableEggs(ctx):
+    channelData = ExtFuncs.filePath(gid)
+    jsonData = channelData.jsonData
+    twitchData = channelData.twitchData
+    twitchData.update({'EasterEggs': False})
+    jsonData.update({'TwitchChannel': twitchData})
+    with open(channelData.jsonPath, 'wt') as writeData:
+        writeData.write(json.dumps(jsonData))
+    await ctx.send('Easter eggs now disabled.')
+    bot.unload_module('modules.twitchCogs.easterEggs')
+    try:
+        bot.unload_module('modules.twitchCogs.easterEggs')
+        #await ctx.send('Easter eggs have been stopped successfully')
+    except:
+        #await ctx.send('Failed to unload the easter eggs. Consider restarting the twitch bot from discord by running ".killTwitch" followed by ".runTwitch"')
+        pass
+    return
 
 def safeShutDown():
     print('called safeShutDown-twitch')
@@ -435,12 +528,6 @@ def safeShutDown():
     bot._ws.teardown()
     print('properly toredown ws')
     return
-
-"""
-@bot.command(name='clip')
-async def clip(ctx):
-    await bot.create_clip(os.environ['TMI_TOKEN'])
-"""
 
 # Joins the specified twitch channel
 async def joinChannel(channelName):

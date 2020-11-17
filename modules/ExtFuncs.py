@@ -81,7 +81,6 @@ class filePath:
         self.bannedWords = self.findGuildData('BannedWords')
         self.jsonData = self.readGuildJson()
 
-
     def findGuildData(self, dataIn):
         with open(self.jsonPath, 'rt') as openFile:
             dataOut = json.loads(openFile.read()).get(dataIn)

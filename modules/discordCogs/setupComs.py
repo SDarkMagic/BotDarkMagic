@@ -33,15 +33,21 @@ class setupCommands(commands.Cog):
         dcBackend = guildReadVars.get('DiscordBackend')
         dcBackend.update({'streamTTVChannel': channelName})
         guildReadVars.update({'DiscordBackend': dcBackend})
-        
+        defaultTwitchData = {'entryLines': [], 'missTxt': '', 'Rules': {}, 'CustomComs': {}, 'EasterEggs': False}
+
         try:
             twitchData = guildReadVars.get('TwitchChannel')
         except:
             twitchData = None
         if twitchData == None:
-            twitchData = {'entryLines': [], 'missTxt': '', 'Rules': {}, 'easterEggs': False}
+            twitchData = defaultTwitchData
         else:
-            pass
+            for key in defaultTwitchData:
+                if key in twitchData:
+                    continue
+                else:
+                    twitchData.update({key: defaultTwitchData.get(key)})
+                    
         guildReadVars.update({'TwitchChannel': twitchData})
 
         with open(guildVarPath.jsonPath, 'wt') as guildWriteVarsFile:
