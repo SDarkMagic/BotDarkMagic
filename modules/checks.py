@@ -1,6 +1,8 @@
 
 import discord
 from discord.ext import commands
+import twitchio
+from twitchio.ext import commands as twitchComs
 from modules import ExtFuncs
 
 # Checks if a user has a role in a list of roles
@@ -35,3 +37,12 @@ def checkOwner():
         else:
             return False
     return commands.check(predicate)
+
+# Checks if a user is a twitch channel moderator
+def checkMod():
+    def predicate(ctx):
+        if ctx.author.is_mod:
+            return True
+        else:
+            return False
+    return twitchComs.check(predicate)

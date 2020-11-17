@@ -11,6 +11,7 @@ import pathlib
 import sys
 import threading
 import asyncio
+import checks as customChecks
 import nest_asyncio
 nest_asyncio.apply()
 
@@ -417,6 +418,7 @@ async def blacklist(ctx, word):
     bannedWords.clos()
 """
 
+@customChecks.checkMod()
 @bot.command(name="so")
 async def so(ctx, user):
     user = str(user).lstrip('@')
@@ -451,7 +453,7 @@ class customComs:
         with open(self.varFile.jsonPath, 'wt') as writeData:
             writeData.write(json.dumps(self.guildData, indent=2))
 
-
+@customChecks.checkMod()
 @bot.command(name="addCom")
 async def addCom(ctx, commandName, *commandReturn):
     guildData = customComs(gid)
@@ -462,6 +464,7 @@ async def addCom(ctx, commandName, *commandReturn):
     guildData.addCom(commandName, commandReturn)
     await ctx.send(f'The command !{commandName} was successfully added.')
 
+@customChecks.checkMod()
 @bot.command(name="editCom")
 async def editCom(ctx, commandName, *commandReturn):
     guildData = customComs(gid)
@@ -472,6 +475,7 @@ async def editCom(ctx, commandName, *commandReturn):
     guildData.addCom(commandName, commandReturn)
     await ctx.send(f'The command !{commandName} was successfully updated.')
 
+@customChecks.checkMod()
 @bot.command(name='removeCom')
 async def removeCom(ctx, commandName):
     guildData = customComs(gid)
@@ -482,6 +486,7 @@ async def removeCom(ctx, commandName):
     guildData.removeCom(commandName)
     await ctx.send(f'The command !{commandName} was removed successfully.')
 
+@customChecks.checkMod()
 @bot.command(name='enableEggs', aliases=['enableEasterEggs'])
 async def enableEggs(ctx):
     channelData = ExtFuncs.filePath(gid)
@@ -498,7 +503,7 @@ async def enableEggs(ctx):
     except:
         await ctx.send('Failed to load the easter eggs. Consider restarting the twitch bot from discord by running ".killTwitch" followed by ".runTwitch"')
     return
-
+@customChecks.checkMod()
 @bot.command(name='disableEggs', aliases=['disableEasterEggs'])
 async def disableEggs(ctx):
     channelData = ExtFuncs.filePath(gid)
