@@ -10,9 +10,8 @@ class setupCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
-    @commands.command(name='amStrimmer', aliases=['amStreamer'])
     @customChecks.checkRole('Admins')
+    @commands.command(name='amStrimmer', aliases=['amStreamer'])
     async def amStrimmer(self, ctx, channelName=None):
         if channelName == None:
             await ctx.send('Please include a twitch channel name to check for live activity.')
