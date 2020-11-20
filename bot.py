@@ -27,7 +27,7 @@ bot = commands.Bot(
     command_prefix=os.environ['PREFIX'],
     guild_subscriptions=True
     )
-varPath = pathlib.Path('Vars')
+varPath = pathlib.Path('./Vars')
 TWITCH_STREAM_API_ENDPOINT = "https://api.twitch.tv/helix/streams/"
 loopVar = True
 now = botStartTime.strftime("%Y-%m-%d").replace('/', '')
@@ -54,7 +54,7 @@ def loadCogs():
                 print(f'Failed to load cog "{currentCog}"')
                 continue
         else:
-            print(f'{str(file).split(".")} is not a python file, and thus could not be loaded as a cog.')
+            print(f'{str(file).split(".")[0]} is not a python file, and thus could not be loaded as a cog.')
 #    print(f"comparing {(str(file).split('.'))} and {(str('py'))}")
 
 @bot.event
@@ -64,7 +64,6 @@ async def on_ready():
     initThreads()
 #    refreshauth = asyncio.create_task(roa())
     log = asyncio.create_task(logName())
-#    twitchBot = asyncio.create_task(os.system('pipenv run python twitchBot.py'))
     loadCogs()
 
     await asyncio.gather(
@@ -81,7 +80,6 @@ async def on_message(ctx):
         print("The bot is not allowed to respond to itself")
         return
     else:
-#        await event_yeetMeow(ctx)
         await event_filter(ctx)
         await event_magic(ctx)
         await event_creeper(ctx)
@@ -292,16 +290,6 @@ async def event_creeper(ctx):
     for item in msgToList:
         if (item.lower() == 'creeper'):
             await ctx.channel.send("Aww Man")
-"""
-# Yeet the meow
-async def event_yeetMeow(ctx):
-    msgList = ctx.content.split(" ")
-    for item in msgList:
-        itemFinal = ExtFuncs.puncStrip(item)
-        if itemFinal.lower() == 'meow':
-            await ctx.delete()
-            await ctx.author.send("don't use that word")
-"""
 
 # Message logging
 async def event_message_log(ctx):
@@ -386,17 +374,13 @@ async def on_member_join(ctx):
         userRoles.append(lockRole)
     except:
         print(f'No lock role for server {ctx.guild}')
-#    varFile = open(pathlib.Path(f'Vars/{ctx.guild.id}/{ctx.guild.id}.json'))
-    welcomeChannel = bot.get_channel(int((json.loads(varFile.read()).get("DiscordBackend")).get("WelcomeChannel")))
+    welcomeChannel = bot.get_channel(int(dcBackend.get("WelcomeChannel")))
     await welcomeChannel.send(f'{ctx.mention} welcome to {ctx.guild.name}. We hope you enjoy your stay here!')
     await ctx.edit(roles=userRoles)
-    
-
 
 # A test command subject to change
 @bot.command(name="test")
 async def test(ctx, user='sdarkmagic'):
-#    await bot.change_presence(activity=discord.Game(name='YEP'))
     streamEmbed = TwitchAPI.generateEmbed(user)
     Channel = discord.Client.get_channel(bot, id=int(os.getenv('STREAM_ANNOUNCEMENT_CHANNEL')))
     print(Channel)
