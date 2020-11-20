@@ -7,7 +7,6 @@ from twitchio.ext import commands
 class eggs():
     def __init__(self, bot):
         self.bot = bot
-        print('started eastereggs cog')
 
     async def event_message(self, ctx):
         if ctx.author.name.lower() == os.environ['BOT_NICK'].lower():

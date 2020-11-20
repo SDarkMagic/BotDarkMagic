@@ -81,7 +81,6 @@ class twitchBotCog(commands.Cog):
             print('joined process')
             currentProcess.close()
             print('closed process')
-        print('unloaded cog')
 
 def setup(bot):
     bot.add_cog(twitchBotCog(bot))
