@@ -11,7 +11,7 @@ globablVarFile = pathlib.Path(f'varPath/{globalVars.json}')
 
 def main():
   os.system('pipenv --python 3.7')
-  with open ('./PIPFILE', 'wt') as writePipfile:
+  with open ('./Pipfile', 'wt') as writePipfile:
     writePipfile.write(pipfileTemplate)
   os.system('pipenv sync')
 

@@ -495,7 +495,7 @@ async def enableEggs(ctx):
     twitchData.update({'EasterEggs': True})
     jsonData.update({'TwitchChannel': twitchData})
     with open(channelData.jsonPath, 'wt') as writeData:
-        writeData.write(json.dumps(jsonData))
+        writeData.write(json.dumps(jsonData, indent=2))
     await ctx.send('Easter eggs successfully enabled; Enjoy! :)')
     try:
         bot.load_module('modules.twitchCogs.easterEggs')
@@ -512,7 +512,7 @@ async def disableEggs(ctx):
     twitchData.update({'EasterEggs': False})
     jsonData.update({'TwitchChannel': twitchData})
     with open(channelData.jsonPath, 'wt') as writeData:
-        writeData.write(json.dumps(jsonData))
+        writeData.write(json.dumps(jsonData, indent=2))
     await ctx.send('Easter eggs now disabled.')
     bot.unload_module('modules.twitchCogs.easterEggs')
     try:
