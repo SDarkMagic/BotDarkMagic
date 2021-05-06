@@ -2,7 +2,7 @@
 import os
 import random
 import time
-import modules.ExtFuncs as ExtFuncs
+import ExtFuncs as ExtFuncs
 import twitchio
 from twitchio.ext import commands
 import json
@@ -64,7 +64,7 @@ def run(botClass, guildId, dataQueue):
     global data
     global channelToJoin
     global gid
-    data = dataQueue
+    #data = dataQueue
     channelToJoin = [botClass]
 
     if botClass != None:
@@ -92,7 +92,7 @@ gid = None
 
 @bot.event
 async def event_ready():
-    global checker
+    #global checker
     'Called once when the bot goes online.'
     print(f"{os.environ['BOT_NICK']} is now online!")
     await joinChannel(channelToJoin)
@@ -107,8 +107,8 @@ async def event_ready():
     else:
         pass
     print(randomEntrance)
-    checker = dataChecker(data)
-    checker.check()
+    #checker = dataChecker(data)
+    #checker.check()
     ws = bot._ws
     await ws.send_privmsg(channelToJoin[0], f"/me {randomEntrance}")
 
@@ -503,6 +503,7 @@ async def enableEggs(ctx):
     except:
         await ctx.send('Failed to load the easter eggs. Consider restarting the twitch bot from discord by running ".killTwitch" followed by ".runTwitch"')
     return
+  
 @customChecks.checkMod()
 @bot.command(name='disableEggs', aliases=['disableEasterEggs'])
 async def disableEggs(ctx):
@@ -525,11 +526,11 @@ async def disableEggs(ctx):
 
 def safeShutDown():
     print('called safeShutDown-twitch')
-    for threadObj in runningThreads:
-        threadObj.join()
-        print(f'Safely ended thread: {threadObj.name}')
-    checker.queue.close()
-    print('closed queue')
+    #for threadObj in runningThreads:
+        #threadObj.join()
+        #print(f'Safely ended thread: {threadObj.name}')
+    #checker.queue.close()
+    #print('closed queue')
     bot._ws.teardown()
     print('properly toredown ws')
     return

@@ -4,7 +4,7 @@ from discord.ext import commands
 import twitchio
 import functools
 from twitchio.ext import commands as twitchComs
-from modules import ExtFuncs
+import ExtFuncs
 from discord.ext.commands import errors
 
 # Checks if a user has a role in a list of roles
